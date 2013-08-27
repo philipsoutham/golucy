@@ -12,7 +12,7 @@ Duh.
 
 ### Lucy
 Works as of commit [e19687f9a6b0158308ac7bcafc663296635b107a][3].
-```bash
+```shell
 $ export BUILD_DIR=$HOME/build
 $ export LUCY_HOME=$HOME/.local/lucy
 $ cd $BUILD_DIR
@@ -35,6 +35,18 @@ export CGO_CFLAGS="-I$LUCY_HOME/include ${CGO_CFLAGS}"
 export LD_LIBRARY_PATH=$LUCY_HOME/lib:$LD_LIBRARY_PATH
 ```
 
+## Installation
+Provided you have the dependencies in order a simple
+```shell
+$ go get github.com/philipsoutham/golucy
+```
+should suffice.
+
+## Example
+See [this example][4] inspired by [this][5] one in C.
+
 [1]: http://lucy.apache.org/
 [2]: http://lucene.apache.org/core/
 [3]: https://git-wip-us.apache.org/repos/asf?p=lucy.git;a=commit;h=e19687f9a6b0158308ac7bcafc663296635b107a
+[4]: https://gist.github.com/philipsoutham/6359668
+[5]: https://git-wip-us.apache.org/repos/asf?p=lucy.git;a=blob;f=c/sample/getting_started.c;h=efdf050d546d7fbfaadd6882f2f6b91033c8be69;hb=HEAD
