@@ -20,11 +20,11 @@ $ git clone https://git-wip-us.apache.org/repos/asf/lucy.git
 $ cd $BUILD_DIR/lucy/c
 $ ./configure --prefix=$LUCY_HOME
 $ make && make test && make install
-$ ./install --prefix=$LUCY_HOME
+$ ./install.sh --prefix $LUCY_HOME
 $ cd $BUILD_DIR/lucy/clownfish/runtime/c
 $ ./configure --prefix=$LUCY_HOME
 $ make && make test && make install
-$ ./install --prefix=$LUCY_HOME
+$ ./install.sh --prefix $LUCY_HOME
 ```
 ### Configuration
 Add the following to your `.profile` or `.zshrc` or similar (you will also need to have your `GOHOME` and/or `GOPATH` set).
