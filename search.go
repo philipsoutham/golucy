@@ -28,6 +28,22 @@ package golucy
 #define LucyHitsNext LUCY_Hits_Next
 #define LucyHitDocExtract LUCY_HitDoc_Extract
 
+#include "Lucy/Search/Query.h"
+#define LucyQuery lucy_Query
+
+#include "Lucy/Search/QueryParser.h"
+#define LucyQueryParser lucy_QueryParser
+#define LucyQParserNew lucy_QParser_new
+#define LucyQParserParse LUCY_QParser_Parse
+
+#include "Lucy/Plan/Schema.h"
+#define LucySchema lucy_Schema
+
+#include "Lucy/Analysis/EasyAnalyzer.h"
+#define LucyEasyAnalyzerNew lucy_EasyAnalyzer_new
+
+#include "Lucy/Plan/Schema.h"
+#define LucySchemaAllFields LUCY_Schema_All_Fields
 */
 import "C"
 
@@ -36,7 +52,13 @@ type Search struct {
 	lucySearcher *C.LucyIndexSearcher
 }
 
-type IndexReader func(string, string, uint, uint) (uint, []string)
+type Query struct {
+	QueryString string
+	lucySchema  *C.LucySchema
+	lucyQuery   *C.LucyQuery
+}
+
+type IndexReader func(*Query, string, uint, uint) (uint, []string)
 
 // This will need to be a bit more generic,
 // but for testing this will work fine.
@@ -44,10 +66,9 @@ func (search *Search) GetSearcher() IndexReader {
 	idxLocation := cb_newf(search.Location)
 	search.lucySearcher = C.LucyIxSearcherNew(idxLocation)
 	C.DECREF(idxLocation)
-	return func(q string, field string, offset, limit uint) (uint, []string) {
-		query := cb_new_from_utf8(q)
+	return func(query *Query, field string, offset, limit uint) (uint, []string) {
 		getField := cb_newf(field)
-		hits := C.LucyIxSearcherHits(search.lucySearcher, query, C.uint32_t(offset), C.uint32_t(limit), nil)
+		hits := C.LucyIxSearcherHits(search.lucySearcher, query.lucyQuery, C.uint32_t(offset), C.uint32_t(limit), nil)
 		totalNumHits := uint(C.LucyHitsTotal(hits))
 		requestedNumHits := minUInt(limit, totalNumHits)
 		results := make([]string, requestedNumHits)
@@ -62,7 +83,6 @@ func (search *Search) GetSearcher() IndexReader {
 			results[i] = C.GoString(value)
 			C.DECREF(hit)
 		}
-		C.DECREF(query)
 		C.DECREF(getField)
 		C.DECREF(hits)
 		return totalNumHits, results
@@ -71,4 +91,22 @@ func (search *Search) GetSearcher() IndexReader {
 
 func (search *Search) Close() {
 	C.DECREF(search.lucySearcher)
+}
+
+func NewQuery(schema *Schema, queryString string) *Query {
+	language := cb_newf("en")
+	defer C.DECREF(language)
+	analyzer := C.LucyEasyAnalyzerNew(language)
+	defer C.DECREF(analyzer)
+	qp := C.LucyQParserNew(schema.lucySchema, analyzer, cb_newf("AND"), C.LucySchemaAllFields(schema.lucySchema))
+	defer C.DECREF(qp)
+	return &Query{
+		QueryString: queryString,
+		lucySchema:  schema.lucySchema,
+		lucyQuery:   C.LucyQParserParse(qp, cb_new_from_utf8(queryString)),
+	}
+}
+
+func (query *Query) Close() {
+	C.DECREF(query.lucyQuery)
 }
