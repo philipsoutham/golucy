@@ -49,6 +49,7 @@ the [`golucy_getting_started.go`][4] sample.
 
 ```shell
 $ sudo docker build -t <username>/golucy .
+$ sudo docker run <username>/golucy
 ```
 
 [1]: http://lucy.apache.org/
