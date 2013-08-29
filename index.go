@@ -15,20 +15,27 @@ package golucy
 
 /*
 #include "Clownfish/CharBuf.h"
-
-#include "Lucy/Document/Doc.h"
-#include "Lucy/Index/Indexer.h"
-
 #define DECREF       cfish_Obj_decref
 
-#define LucyIndexer lucy_Indexer
-#define LucyIndexerNew lucy_Indexer_new
-#define LucyIndexerCREATE lucy_Indexer_CREATE
-#define LucyIndexerTRUNCATE lucy_Indexer_TRUNCATE
+#include "Lucy/Document/Doc.h"
 #define LucyDocStore LUCY_Doc_Store
 #define LucyDocNew lucy_Doc_new
+
+#include "Lucy/Index/Indexer.h"
+#define LucyIndexer lucy_Indexer
+#define LucyIndexerNew lucy_Indexer_new
+#define LucyIndexerOptimize LUCY_Indexer_Optimize
+#define LucyIndexerDeleteByTerm LUCY_Indexer_Delete_By_Term
+#define LucyIndexerDeleteByQuery LUCY_Indexer_Delete_By_Query
+#define LucyIndexerDeleteByDocId LUCY_Indexer_Delete_By_Doc_ID
+#define LucyIndexerCREATE lucy_Indexer_CREATE
+#define LucyIndexerTRUNCATE lucy_Indexer_TRUNCATE
 #define LucyIndexerAddDoc LUCY_Indexer_Add_Doc
 #define LucyIndexerCommit LUCY_Indexer_Commit
+
+#include "Lucy/Search/Searcher.h"
+#define LucySearcherGleanQuery LUCY_Searcher_Glean_Query
+
 */
 import "C"
 
@@ -39,6 +46,8 @@ type IndexOpenFlags int
 type Index struct {
 	Schema      *Schema
 	Location    string
+	Create      bool
+	Truncate    bool
 	lucyIndexer *C.LucyIndexer
 }
 
@@ -65,6 +74,15 @@ const (
 	IndexTruncate
 )
 
+func NewIndex(schema *Schema, location string, create, truncate bool) *Index {
+	return &Index{
+		Schema:   schema,
+		Location: location,
+		Create:   create,
+		Truncate: truncate,
+	}
+}
+
 func (index *Index) GetIndexWriter(flags IndexOpenFlags) IndexWriter {
 	idxLocation := cb_newf(index.Location)
 	index.lucyIndexer = C.LucyIndexerNew(index.Schema.lucySchema, idxLocation, nil, C.int32_t(flags))
@@ -83,6 +101,8 @@ func (index *Index) GetIndexWriter(flags IndexOpenFlags) IndexWriter {
 	}
 }
 
+// Commit any changes made to the index. Until this is called, none of the changes made during an indexing session are permanent.
+// Calling commit() invalidates the Indexer, so if you want to make more changes you'll need a new one.
 func (index *Index) Commit() {
 	C.LucyIndexerCommit(index.lucyIndexer)
 	C.DECREF(index.lucyIndexer)
@@ -94,4 +114,25 @@ func (index *Index) Close() {
 	// 	// What is the value if it's already had DECREF called on it?
 	// 	//C.DECREF(index.lucyIndexer)
 	// }
+}
+
+// Optimize the index for search-time performance. This may take a while, as it
+// can involve rewriting large amounts of data.
+func (index *Index) Optimize() {
+	C.LucyIndexerOptimize(index.lucyIndexer)
+}
+
+// Mark documents which contain the supplied term as deleted, so that they will be
+// excluded from search results and eventually removed altogether. The change is not apparent to search apps until after commit() succeeds.
+func (index *Index) DeleteByTerm(field, term string) {
+	C.LucyIndexerDeleteByTerm(index.lucyIndexer, cb_newf(field), cb_new_from_utf8(term))
+}
+
+// Mark documents which match the supplied Query as deleted.
+func (index *Index) DeleteByQuery(query string) {
+	panic("not implemented")
+}
+
+func (index *Index) DeleteByDocId(docId int32) {
+	C.LucyIndexerDeleteByDocId(index.lucyIndexer, C.int32_t(docId))
 }
