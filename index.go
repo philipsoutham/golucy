@@ -14,7 +14,7 @@
 package golucy
 
 /*
-#include "Clownfish/CharBuf.h"
+#include "Clownfish/Obj.h"
 #define DECREF       cfish_Obj_decref
 
 #include "Lucy/Document/Doc.h"

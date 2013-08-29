@@ -14,22 +14,25 @@
 package golucy
 
 /*
-#include <stdlib.h>
-#include "Lucy/Search/Hits.h"
-#include "Lucy/Search/IndexSearcher.h"
-#include "Lucy/Document/HitDoc.h"
-
+#include "Clownfish/Obj.h"
 #define DECREF       cfish_Obj_decref
+
+#include "Lucy/Search/IndexSearcher.h"
 #define LucyIndexSearcher lucy_IndexSearcher
 #define LucyIxSearcherNew lucy_IxSearcher_new
 #define LucyIxSearcherHits LUCY_IxSearcher_Hits
+
+#include "Lucy/Document/HitDoc.h"
 #define LucyHitDoc lucy_HitDoc
+#define LucyHitDocExtract LUCY_HitDoc_Extract
+
+#include "Lucy/Search/Hits.h"
 #define LucyHitsTotal LUCY_Hits_Total_Hits
 #define LucyHitsNext LUCY_Hits_Next
-#define LucyHitDocExtract LUCY_HitDoc_Extract
 
 #include "Lucy/Search/Query.h"
 #define LucyQuery lucy_Query
+#define LucyMakeCompiler LUCY_Query_Make_Compiler
 
 #include "Lucy/Search/QueryParser.h"
 #define LucyQueryParser lucy_QueryParser
