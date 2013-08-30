@@ -9,7 +9,7 @@ Schema -> Index |-> IndexWriter
 ```
 
 
-## <a id="schema"></a>1. Schema
+## 1. Schema
 
 A `Schema` is comprized of  one to many `Field` types describing it's structure.
 
@@ -86,7 +86,7 @@ Boolean indicating whether the field should be highlightable. This also seems to
 
 ## 2. Index
 
-Contains a `Location` and [`Schema`](#schema)
+Contains a `Location` and [`Schema`](#1-schema). At a highlevel, describes what is contained in the index files and where they're located.
 
 ```
 ---------|
@@ -103,10 +103,11 @@ A string value indicating the path for the directory where the necessary files w
 
 ### 2.2. Schema
 
-Described [here](#schema)
+Described [here](#1-schema)
 
 <hr/>
 <blockquote>
+***Note (2013-08-29):***<br/>
 *My document writing enthusiasm is starting to dwindle, expect laziness from this point on.*
 </blockquote>
 <hr/>
@@ -118,7 +119,11 @@ In Go:
 ```go
 type Document map[string]string
 
-func (doc *Document) AddDoc(field, value string) {
+func NewDocument() Document {
+	return make(Document)
+}
+
+func (doc Document) Add(field, value string) {
     doc[field] = value
 }
 ```
@@ -126,3 +131,11 @@ func (doc *Document) AddDoc(field, value string) {
 ## 4. IndexWriter
 
 How documents get added to the index.
+
+```go
+func (iw *IndexWriter) AddDoc(doc Document) {
+}
+
+func (iw *IndexWriter) AddDocs(docs ...Document) {
+}
+```
