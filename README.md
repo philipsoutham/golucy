@@ -1,4 +1,4 @@
-![golucy](https://raw.github.com/philipsoutham/golucy/devel/artwork/golucy.png)
+![golucy](https://raw.github.com/philipsoutham/golucy/master/artwork/golucy.png)
 
 # golucy
 Go bindings for [Apache Lucy][1]. The [Apache Lucy][1] search engine library provides full-text search for dynamic
