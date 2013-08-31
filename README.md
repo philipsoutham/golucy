@@ -1,4 +1,4 @@
-![golucy](https://raw.github.com/philipsoutham/golucy/devel/artwork/golucy.png)
+![golucy](https://raw.github.com/philipsoutham/golucy/devel/_artwork/golucy.png)
 
 # golucy
 Go bindings for [Apache Lucy][1]. The [Apache Lucy][1] search engine library provides full-text search for dynamic
@@ -44,17 +44,11 @@ should suffice.
 
 ## Example
 See [this example][4], inspired by [this][5] one in C.
-If you're running [docker](http://docker.io) you can use [this `Dockerfile`][6] to run 
-the [`golucy_getting_started.go`][4] sample. 
 
-```shell
-$ sudo docker build -t <username>/golucy .
-$ sudo docker run <username>/golucy
-```
 
 [1]: http://lucy.apache.org/
 [2]: http://lucene.apache.org/core/
 [3]: https://git-wip-us.apache.org/repos/asf?p=lucy.git;a=commit;h=e19687f9a6b0158308ac7bcafc663296635b107a
-[4]: https://gist.github.com/philipsoutham/6359668
+[4]: https://gist.github.com/philipsoutham/6395791
 [5]: https://git-wip-us.apache.org/repos/asf?p=lucy.git;a=blob;f=c/sample/getting_started.c;h=efdf050d546d7fbfaadd6882f2f6b91033c8be69;hb=HEAD
 [6]: https://gist.github.com/philipsoutham/6371770

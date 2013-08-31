@@ -15,10 +15,12 @@ package golucy
 
 /*
 #include <stdlib.h>
-#include "Clownfish/CharBuf.h"
 
+#include "Clownfish/Obj.h"
+#define DECREF cfish_Obj_decref
+
+#include "Clownfish/CharBuf.h"
 #define CFishCharBuf cfish_CharBuf
-#define DECREF       cfish_Obj_decref
 
 
 extern CFishCharBuf* CB_newf(const char* pattern) {
