@@ -76,6 +76,7 @@ type Query struct {
 }
 
 type SearchResult struct {
+	Id           string
 	Text         string
 	Score        float32
 	MatchedTerms []string
@@ -112,12 +113,13 @@ func (ixReader *IndexReader) ParseQuery(queryStr string) *Query {
 	}
 }
 
-func (ixReader *IndexReader) Search(query *Query, offset, limit uint, field string, includeMatchedTerms bool) (uint, []*SearchResult) {
+func (ixReader *IndexReader) Search(query *Query, offset, limit uint, idField string, contentField string, includeMatchedTerms bool) (uint, []*SearchResult) {
 	// Should probably have some sort
 	// of `Results` object/iterator so that we don't have to specify
 	// offset/limit and where I can attach matched terms to the result.
-	getField := cb_newf(field) // total hack, need to return more than one field
-	defer C.DECREF(getField)
+	lIdField, lContentField := cb_newf(idField), cb_newf(contentField) // total hack, need to return more than one field
+	defer C.DECREF(lIdField)
+	defer C.DECREF(lContentField)
 	hits := C.LucyIxSearcherHits(ixReader.lucySearcher, query.lucyQuery, C.uint32_t(offset), C.uint32_t(limit), nil)
 	defer C.DECREF(hits)
 	totalNumHits := uint(C.LucyHitsTotal(hits))
@@ -130,7 +132,7 @@ func (ixReader *IndexReader) Search(query *Query, offset, limit uint, field stri
 	matchedTerms := func(docId C.int32_t, result *SearchResult) {
 		docVec := C.LucyIxSearchFetchDocVec(ixReader.lucySearcher, docId)
 		defer C.DECREF(docVec)
-		spans := C.LucyCompilerHighlightSpans(compiler, ixReader.lucySearcher, docVec, getField)
+		spans := C.LucyCompilerHighlightSpans(compiler, ixReader.lucySearcher, docVec, lContentField)
 		defer C.DECREF(spans)
 		spanCnt := C.VaGetSize(spans)
 		if spanCnt == 0 {
@@ -155,8 +157,13 @@ func (ixReader *IndexReader) Search(query *Query, offset, limit uint, field stri
 			break
 		}
 		docId := C.LucyHitDocGetDocId(hit)
-		value := cb_ptr2char(C.LucyHitDocExtract(hit, getField, nil)) // do i need to free this
-		results[i] = &SearchResult{Text: C.GoString(value), Score: float32(C.LucyHitDocGetScore(hit))}
+		contentValue := cb_ptr2char(C.LucyHitDocExtract(hit, lContentField, nil)) // do i need to free this
+		idValue := cb_ptr2char(C.LucyHitDocExtract(hit, lIdField, nil))           // do i need to free this
+		results[i] = &SearchResult{
+			Id:    C.GoString(idValue),
+			Text:  C.GoString(contentValue),
+			Score: float32(C.LucyHitDocGetScore(hit)),
+		}
 		if includeMatchedTerms {
 			matchedTerms(docId, results[i])
 		}

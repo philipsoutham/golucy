@@ -84,6 +84,20 @@ type Schema struct {
 	lucySchema *C.LucySchema
 }
 
+func NewIdField(name string) *Field {
+	return &Field{
+		Name:      name,
+		IndexType: StringType,
+		IndexOptions: &IndexOptions{
+			Boost:         0.0,
+			Indexed:       false,
+			Stored:        true,
+			Sortable:      false,
+			Highlightable: false,
+		},
+	}
+}
+
 func NewFTField(name, language string) *Field {
 	return &Field{
 		Name:      name,
