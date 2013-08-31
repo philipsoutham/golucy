@@ -43,8 +43,15 @@ $ go get github.com/philipsoutham/golucy
 should suffice.
 
 ## Example
-See [this example][4], inspired by [this][5] one in C.
+See [this example][4], inspired by [this][5] one in C. 
+If you're running [docker][7] you can see it in action like so. 
 
+
+```shell
+$ docker pull psoutham/golucy
+$ docker run psoutham/golucy
+```
+Details on the docker image can be found [here][8].
 
 [1]: http://lucy.apache.org/
 [2]: http://lucene.apache.org/core/
@@ -52,3 +59,5 @@ See [this example][4], inspired by [this][5] one in C.
 [4]: https://gist.github.com/philipsoutham/6395791
 [5]: https://git-wip-us.apache.org/repos/asf?p=lucy.git;a=blob;f=c/sample/getting_started.c;h=efdf050d546d7fbfaadd6882f2f6b91033c8be69;hb=HEAD
 [6]: https://gist.github.com/philipsoutham/6371770
+[7]: http://docker.io
+[8]: https://index.docker.io/u/psoutham/golucy/
