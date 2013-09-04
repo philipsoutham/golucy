@@ -69,6 +69,8 @@ package golucy
 */
 import "C"
 
+import "strings"
+
 type Query struct {
 	QueryStr   string
 	lucySchema *C.LucySchema // we're now carrying this around in 2 places :-/
@@ -145,7 +147,7 @@ func (ixReader *IndexReader) Search(query *Query, offset, limit uint, idField st
 			span := C.VaFetch(spans, i)
 			offset := C.LucySpanGetOffset(span)
 			length := C.LucySpanGetLength(span)
-			result.MatchedTerms[i] = result.Text[offset : offset+length]
+			result.MatchedTerms[i] = string([]rune(result.Text)[offset : offset+length])
 		}
 		// make terms unique?
 		result.MatchedTerms = set(result.MatchedTerms)
@@ -175,7 +177,7 @@ func (ixReader *IndexReader) Search(query *Query, offset, limit uint, idField st
 func set(vals []string) []string {
 	s := make(map[string]bool)
 	for _, val := range vals {
-		s[val] = true
+		s[strings.ToLower(val)] = true
 	}
 	retval := make([]string, len(s))
 	i := 0
@@ -191,6 +193,6 @@ func (ixReader *IndexReader) Close() {
 }
 
 func (query *Query) Close() {
-	C.DECREF(query.lucySchema)
+	//	C.DECREF(query.lucySchema)
 	C.DECREF(query.lucyQuery)
 }
