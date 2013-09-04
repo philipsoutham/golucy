@@ -1,5 +1,7 @@
 package golucy
 
+import "runtime"
+
 // Copyright 2013 Philip Southam
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -72,9 +74,8 @@ import "C"
 import "strings"
 
 type Query struct {
-	QueryStr   string
-	lucySchema *C.LucySchema // we're now carrying this around in 2 places :-/
-	lucyQuery  *C.LucyQuery
+	QueryStr  string
+	lucyQuery *C.LucyQuery
 }
 
 type SearchResult struct {
@@ -109,9 +110,8 @@ func (ixReader *IndexReader) ParseQuery(queryStr string) *Query {
 	)
 	defer C.DECREF(qp)
 	return &Query{
-		QueryStr:   queryStr,
-		lucySchema: lucySchema,
-		lucyQuery:  C.LucyQParserParse(qp, cb_new_from_utf8(queryStr)),
+		QueryStr:  queryStr,
+		lucyQuery: C.LucyQParserParse(qp, cb_new_from_utf8(queryStr)),
 	}
 }
 
