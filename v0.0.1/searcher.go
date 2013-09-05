@@ -1,5 +1,9 @@
 package golucy
 
+import (
+	"runtime"
+)
+
 // Copyright 2013 Philip Southam
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,6 +35,14 @@ package golucy
 
 #include "Lucy/Analysis/EasyAnalyzer.h"
 #define LucyEasyAnalyzerNew lucy_EasyAnalyzer_new
+#define LucyEasyAnalyzerTransform LUCY_EasyAnalyzer_Transform // returns lucy_Inversion*
+#define LucyEasyAnalyzerTransformText LUCY_EasyAnalyzer_Transform_Text // returns lucy_Inversion*
+
+#include "Lucy/Analysis/Token.h"
+#define LucyInversionNext LUCY_Inversion_Next //returns lucy_Token*
+#define LucyInversionNextCluster LUCY_Inversion_Next_Cluster //returns lucy_Token**
+
+
 
 #include "Lucy/Plan/Schema.h"
 #define LucySchema lucy_Schema
@@ -72,9 +84,8 @@ import "C"
 import "strings"
 
 type Query struct {
-	QueryStr   string
-	lucySchema *C.LucySchema // we're now carrying this around in 2 places :-/
-	lucyQuery  *C.LucyQuery
+	QueryStr  string
+	lucyQuery *C.LucyQuery
 }
 
 type SearchResult struct {
@@ -92,7 +103,12 @@ type IndexReader struct {
 func (index *Index) NewIndexReader() *IndexReader {
 	ixLocation := cb_newf(index.Path)
 	defer C.DECREF(ixLocation)
-	return &IndexReader{Index: index, lucySearcher: C.LucyIxSearcherNew(ixLocation)}
+	ixReader := &IndexReader{
+		Index:        index,
+		lucySearcher: C.LucyIxSearcherNew(ixLocation),
+	}
+	runtime.SetFinalizer(ixReader, freeIndexReader)
+	return ixReader
 }
 
 func (ixReader *IndexReader) ParseQuery(queryStr string) *Query {
@@ -108,11 +124,14 @@ func (ixReader *IndexReader) ParseQuery(queryStr string) *Query {
 		C.LucySchemaAllFields(lucySchema), // should be configurable
 	)
 	defer C.DECREF(qp)
-	return &Query{
-		QueryStr:   queryStr,
-		lucySchema: lucySchema,
-		lucyQuery:  C.LucyQParserParse(qp, cb_new_from_utf8(queryStr)),
+	qs := cb_new_from_utf8(queryStr)
+	defer C.DECREF(qs)
+	query := &Query{
+		QueryStr:  queryStr,
+		lucyQuery: C.LucyQParserParse(qp, qs),
 	}
+	runtime.SetFinalizer(query, freeQuery)
+	return query
 }
 
 func (ixReader *IndexReader) Search(query *Query, offset, limit uint, idField string, contentField string, includeMatchedTerms bool) (uint, []*SearchResult) {
@@ -189,10 +208,23 @@ func set(vals []string) []string {
 }
 
 func (ixReader *IndexReader) Close() {
-	C.DECREF(ixReader.lucySearcher)
+	if ixReader.lucySearcher != nil {
+		C.DECREF(ixReader.lucySearcher)
+		ixReader.lucySearcher = nil
+	}
 }
 
 func (query *Query) Close() {
-	//	C.DECREF(query.lucySchema)
-	C.DECREF(query.lucyQuery)
+	if query.lucyQuery != nil {
+		C.DECREF(query.lucyQuery)
+		query.lucyQuery = nil
+	}
+}
+
+func freeIndexReader(ixReader *IndexReader) {
+	ixReader.Close()
+}
+
+func freeQuery(query *Query) {
+	query.Close()
 }

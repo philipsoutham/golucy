@@ -1,5 +1,9 @@
 package golucy
 
+import (
+	"runtime"
+)
+
 // Copyright 2013 Philip Southam
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -45,12 +49,6 @@ package golucy
 
 */
 import "C"
-
-// type analyzerType uint8
-
-// const (
-// 	AnalyzerEasy analyzerType = iota
-// )
 
 type indexType uint8
 
@@ -114,7 +112,9 @@ func NewFTField(name, language string) *Field {
 }
 
 func NewSchema() *Schema {
-	return &Schema{lucySchema: C.LucySchemaNew()}
+	schema := &Schema{lucySchema: C.LucySchemaNew()}
+	runtime.SetFinalizer(schema, freeSchema)
+	return schema
 }
 
 func (schema *Schema) AddField(field *Field) {
@@ -142,7 +142,10 @@ func (schema *Schema) AddFields(fields ...(*Field)) {
 }
 
 func (schema *Schema) Close() {
-	C.DECREF(schema.lucySchema)
+	if schema.lucySchema != nil {
+		C.DECREF(schema.lucySchema)
+		schema.lucySchema = nil
+	}
 }
 
 func NewIndexOptions(language string, boost float32, indexed, stored, sortable, highlightable bool) *IndexOptions {
@@ -159,11 +162,16 @@ func NewIndexOptions(language string, boost float32, indexed, stored, sortable, 
 func NewAnalyzer(language string) *Analyzer {
 	lang := cb_newf(language)
 	defer C.DECREF(lang)
-	return &Analyzer{Language: language, lucyAnalyzer: C.LucyEasyAnalyzerNew(lang)}
+	analyzer := &Analyzer{Language: language, lucyAnalyzer: C.LucyEasyAnalyzerNew(lang)}
+	runtime.SetFinalizer(analyzer, freeAnalyzer)
+	return analyzer
 }
 
 func (analyzer *Analyzer) Close() {
-	C.DECREF(analyzer.lucyAnalyzer)
+	if analyzer.lucyAnalyzer != nil {
+		C.DECREF(analyzer.lucyAnalyzer)
+		analyzer.lucyAnalyzer = nil
+	}
 }
 
 func stringSpecType(field *Field) *C.CFishCharBuf {
@@ -200,4 +208,12 @@ func fullTextSpecType(field *Field) *C.CFishCharBuf {
 		(C.bool)(field.IndexOptions.Sortable),
 		(C.bool)(field.IndexOptions.Highlightable),
 	)
+}
+
+func freeSchema(schema *Schema) {
+	schema.Close()
+}
+
+func freeAnalyzer(analyzer *Analyzer) {
+	analyzer.Close()
 }

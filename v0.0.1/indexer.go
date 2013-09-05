@@ -1,5 +1,9 @@
 package golucy
 
+import (
+	"runtime"
+)
+
 // Copyright 2013 Philip Southam
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -89,11 +93,15 @@ func (index *Index) NewIndexWriter() *IndexWriter {
 	}
 	ixLocation := cb_newf(index.Path)
 	defer C.DECREF(ixLocation)
-	lucyIndexer := C.LucyIndexerNew(index.Schema.lucySchema, ixLocation, nil, C.int32_t(flags))
-	return &IndexWriter{Index: index, lucyIndexer: lucyIndexer}
+	ixWriter := &IndexWriter{
+		Index:       index,
+		lucyIndexer: C.LucyIndexerNew(index.Schema.lucySchema, ixLocation, nil, C.int32_t(flags)),
+	}
+	runtime.SetFinalizer(ixWriter, freeIndexWriter)
+	return ixWriter
 }
 
-func (iw *IndexWriter) AddDoc(doc Document) {
+func (ixWriter *IndexWriter) AddDoc(doc Document) {
 	lDoc := C.LucyDocNew(nil, 0) // Are these sane defaults?
 	for k, v := range doc {
 		name := cb_newf(k)
@@ -102,21 +110,29 @@ func (iw *IndexWriter) AddDoc(doc Document) {
 		C.DECREF(name)
 		C.DECREF(value)
 	}
-	C.LucyIndexerAddDoc(iw.lucyIndexer, lDoc, 1.0) // Is 1.0 a sane default?
+	C.LucyIndexerAddDoc(ixWriter.lucyIndexer, lDoc, 1.0) // Is 1.0 a sane default?
 	C.DECREF(lDoc)
 }
 
-func (iw *IndexWriter) AddDocs(docs ...Document) { // should this be []Document or ...Document?
+func (ixWriter *IndexWriter) AddDocs(docs ...Document) { // should this be []Document or ...Document?
 	for _, doc := range docs {
-		iw.AddDoc(doc)
+		ixWriter.AddDoc(doc)
 	}
 }
 
-func (iw *IndexWriter) Commit() {
-	C.LucyIndexerCommit(iw.lucyIndexer)
+func (ixWriter *IndexWriter) Commit() {
+	C.LucyIndexerCommit(ixWriter.lucyIndexer)
 }
 
-func (iw *IndexWriter) Close() {
+func (ixWriter *IndexWriter) Close() {
 	// Should this be here or in Commit?
-	C.DECREF(iw.lucyIndexer)
+	if ixWriter.lucyIndexer != nil {
+		C.DECREF(ixWriter.lucyIndexer)
+		ixWriter.lucyIndexer = nil
+	}
+}
+
+func freeIndexWriter(ixWriter *IndexWriter) {
+	ixWriter.Close()
+
 }
