@@ -36,11 +36,17 @@ export LD_LIBRARY_PATH=$LUCY_HOME/lib:$LD_LIBRARY_PATH
 ```
 
 ## Installation
-Provided you have the dependencies in order a simple
-```shell
-$ go get github.com/philipsoutham/golucy
+Provided you have the dependencies in order add this:
+```go
+import (
+  golucy "github.com/philipsoutham/golucy/v0.0.1"
+)
 ```
-should suffice.
+then do:
+```shell
+$ go get 
+```
+
 
 ## Example
 See [this example][4], inspired by [this][5] one in C. 
