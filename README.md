@@ -18,6 +18,7 @@ $ export LUCY_HOME=$HOME/.local/lucy
 $ cd $BUILD_DIR
 $ git clone https://git-wip-us.apache.org/repos/asf/lucy.git
 $ cd $BUILD_DIR/lucy/c
+$ git checkout e19687f9a6b0158308ac7bcafc663296635b107a
 $ ./configure --prefix=$LUCY_HOME
 $ make && make test && make install
 $ ./install.sh --prefix $LUCY_HOME
