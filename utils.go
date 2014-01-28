@@ -27,7 +27,7 @@ extern CFishCharBuf* CB_newf(const char* pattern) {
     return cfish_CB_newf(pattern);
 }
 
-extern char* cfish_cb_ptr2char(const CFishCharBuf * field) {
+extern  char* cfish_cb_ptr2char( CFishCharBuf * field) {
     return (char*)CFISH_CB_Get_Ptr8(field);
 }
 

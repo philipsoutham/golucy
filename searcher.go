@@ -178,8 +178,8 @@ func (ixReader *IndexReader) Search(query *Query, offset, limit uint, idField st
 			break
 		}
 		docId := C.LucyHitDocGetDocId(hit)
-		contentValue := cb_ptr2char(C.LucyHitDocExtract(hit, lContentField, nil)) // do i need to free this
-		idValue := cb_ptr2char(C.LucyHitDocExtract(hit, lIdField, nil))           // do i need to free this
+		contentValue := cb_ptr2char(C.LucyHitDocExtract(hit, lContentField)) // do i need to free this
+		idValue := cb_ptr2char(C.LucyHitDocExtract(hit, lIdField))           // do i need to free this
 		results[i] = &SearchResult{
 			Id:    C.GoString(idValue),
 			Text:  C.GoString(contentValue),
