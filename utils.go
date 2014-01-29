@@ -23,8 +23,8 @@ package golucy
 #define CFishCharBuf cfish_CharBuf
 
 
-extern CFishCharBuf* CB_newf(const char* pattern) {
-    return cfish_CB_newf(pattern);
+extern cfish_String* CB_news(const char* pattern) {
+    return CFISH_CB_To_String(cfish_CB_newf(pattern));
 }
 
 extern  char* cfish_cb_ptr2char( CFishCharBuf * field) {
@@ -38,10 +38,10 @@ import (
 	"unsafe"
 )
 
-func cb_newf(s string) *C.CFishCharBuf {
+func cb_news(s string) *C.CFishCharBuf {
 	cString := C.CString(s)
 	defer C.free(unsafe.Pointer(cString))
-	return C.CB_newf(cString)
+	return C.CB_news(cString)
 }
 
 func cb_new_from_utf8(s string) *C.CFishCharBuf {

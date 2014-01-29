@@ -101,7 +101,7 @@ type IndexReader struct {
 }
 
 func (index *Index) NewIndexReader() *IndexReader {
-	ixLocation := cb_newf(index.Path)
+	ixLocation := cb_news(index.Path)
 	defer C.DECREF(ixLocation)
 	ixReader := &IndexReader{
 		Index:        index,
@@ -113,14 +113,14 @@ func (index *Index) NewIndexReader() *IndexReader {
 
 func (ixReader *IndexReader) ParseQuery(queryStr string) *Query {
 	lucySchema := C.LucyIxSearcherGetSchema(ixReader.lucySearcher)
-	language := cb_newf("en") // should be configurable
+	language := cb_news("en") // should be configurable
 	defer C.DECREF(language)
 	analyzer := C.LucyEasyAnalyzerNew(language)
 	defer C.DECREF(analyzer)
 	qp := C.LucyQParserNew(
 		lucySchema,
 		analyzer,                          //should this be configurable?
-		cb_newf("AND"),                    // should be configurable
+		cb_news("AND"),                    // should be configurable
 		C.LucySchemaAllFields(lucySchema), // should be configurable
 	)
 	defer C.DECREF(qp)
@@ -138,7 +138,7 @@ func (ixReader *IndexReader) Search(query *Query, offset, limit uint, idField st
 	// Should probably have some sort
 	// of `Results` object/iterator so that we don't have to specify
 	// offset/limit and where I can attach matched terms to the result.
-	lIdField, lContentField := cb_newf(idField), cb_newf(contentField) // total hack, need to return more than one field
+	lIdField, lContentField := cb_news(idField), cb_news(contentField) // total hack, need to return more than one field
 	defer C.DECREF(lIdField)
 	defer C.DECREF(lContentField)
 	hits := C.LucyIxSearcherHits(ixReader.lucySearcher, query.lucyQuery, C.uint32_t(offset), C.uint32_t(limit), nil)

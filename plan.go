@@ -121,7 +121,7 @@ func (schema *Schema) AddField(field *Field) {
 	schema.Fields = append(schema.Fields, field)
 	var specType *C.CFishObj
 	defer C.DECREF(specType)
-	name := cb_newf(field.Name)
+	name := cb_news(field.Name)
 	defer C.DECREF(name)
 
 	switch field.IndexType {
@@ -160,7 +160,7 @@ func NewIndexOptions(language string, boost float32, indexed, stored, sortable, 
 }
 
 func NewAnalyzer(language string) *Analyzer {
-	lang := cb_newf(language)
+	lang := cb_news(language)
 	defer C.DECREF(lang)
 	analyzer := &Analyzer{Language: language, lucyAnalyzer: C.LucyEasyAnalyzerNew(lang)}
 	runtime.SetFinalizer(analyzer, freeAnalyzer)

@@ -91,7 +91,7 @@ func (index *Index) NewIndexWriter() *IndexWriter {
 	if index.Truncate {
 		flags |= indexTruncate
 	}
-	ixLocation := cb_newf(index.Path)
+	ixLocation := cb_news(index.Path)
 	defer C.DECREF(ixLocation)
 	ixWriter := &IndexWriter{
 		Index:       index,
@@ -104,7 +104,7 @@ func (index *Index) NewIndexWriter() *IndexWriter {
 func (ixWriter *IndexWriter) AddDoc(doc Document) {
 	lDoc := C.LucyDocNew(nil, 0) // Are these sane defaults?
 	for k, v := range doc {
-		name := cb_newf(k)
+		name := cb_news(k)
 		value := cb_new_from_utf8(v)
 		C.LucyDocStore(lDoc, name, value)
 		C.DECREF(name)
