@@ -1,8 +1,6 @@
 package golucy
 
-import (
-	"runtime"
-)
+import "runtime"
 
 // Copyright 2013 Philip Southam
 //
@@ -26,14 +24,34 @@ import (
 #include "Clownfish/CharBuf.h"
 #define CFishCharBuf cfish_CharBuf
 
+#include "Clownfish/VArray.h"
+#define CFishVArray cfish_VArray
+#define CFishVArrayNew  cfish_VA_new
+#define CFishVArrayPush CFISH_VA_Push
+
 #include "Lucy/Plan/Schema.h"
 #define LucySchema lucy_Schema
 #define LucySchemaNew lucy_Schema_new
 #define LucySchemaSpecField LUCY_Schema_Spec_Field
 
+#include "Lucy/Analysis/Analyzer.h"
+#define LucyAnalyzer lucy_Analyzer
+
+#include "Lucy/Analysis/StandardTokenizer.h"
+#define LucyStandardTokenizerNew lucy_StandardTokenizer_new
+#define LucyStandardTokenizer lucy_StandardTokenizer
+
+#include "Lucy/Analysis/Normalizer.h"
+#define LucyNormalizerNew lucy_Normalizer_new
+#define LucyNormalizer lucy_Normalizer
+
 #include "Lucy/Analysis/EasyAnalyzer.h"
 #define LucyEasyAnalyzerNew lucy_EasyAnalyzer_new
 #define LucyEasyAnalyzer lucy_EasyAnalyzer
+
+#include "Lucy/Analysis/PolyAnalyzer.h"
+#define LucyPolyAnalyzerNew lucy_PolyAnalyzer_new
+#define LucyPolyAnalyzer lucy_PolyAnalyzer
 
 #include "Lucy/Plan/FullTextType.h"
 #define LucyFullTextTypeNew lucy_FullTextType_new
@@ -57,9 +75,19 @@ const (
 	StringType
 )
 
+//type Analyzer struct {
+//	Language     string
+//	lucyAnalyzer *C.LucyEasyAnalyzer
+//}
+
+//type Analyzer struct {
+//	Language     string
+//	lucyAnalyzer *C.LucyPolyAnalyzer
+//}
+
 type Analyzer struct {
 	Language     string
-	lucyAnalyzer *C.LucyEasyAnalyzer
+	lucyAnalyzer *C.LucyAnalyzer
 }
 
 type IndexOptions struct {
@@ -159,10 +187,31 @@ func NewIndexOptions(language string, boost float32, indexed, stored, sortable, 
 	}
 }
 
-func NewAnalyzer(language string) *Analyzer {
+//func NewAnalyzer(language string) *Analyzer {
+//	lang := cb_newf(language)
+//	defer C.DECREF(lang)
+//	analyzer := &Analyzer{Language: language, lucyAnalyzer: C.LucyEasyAnalyzerNew(lang)}
+//	fmt.Printf("%+v\n", analyzer)
+//	runtime.SetFinalizer(analyzer, freeAnalyzer)
+//	return analyzer
+//}
+
+func NewAnalyzer(language string, stemTerms bool) *Analyzer {
 	lang := cb_newf(language)
 	defer C.DECREF(lang)
-	analyzer := &Analyzer{Language: language, lucyAnalyzer: C.LucyEasyAnalyzerNew(lang)}
+
+	var analyzer *Analyzer
+	// use a stemming analyzer if we are stemming
+	if stemTerms {
+		analyzer = &Analyzer{Language: language, lucyAnalyzer: C.LucyEasyAnalyzerNew(lang)}
+	} else {
+		tokenizer := C.LucyStandardTokenizerNew()
+		normalizer := C.LucyNormalizerNew(nil, (C.bool)(true), (C.bool)(false))
+		analyzers := C.CFishVArrayNew((C.uint32_t)(2))
+		C.CFishVArrayPush(analyzers, normalizer)
+		C.CFishVArrayPush(analyzers, tokenizer)
+		analyzer = &Analyzer{Language: language, lucyAnalyzer: C.LucyPolyAnalyzerNew(lang, analyzers)}
+	}
 	runtime.SetFinalizer(analyzer, freeAnalyzer)
 	return analyzer
 }
