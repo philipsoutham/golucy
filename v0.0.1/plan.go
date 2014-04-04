@@ -124,12 +124,12 @@ func NewIdField(name string) *Field {
 	}
 }
 
-func NewFTField(name, language string) *Field {
+func NewFTField(name, language string, stemTerms bool) *Field {
 	return &Field{
 		Name:      name,
 		IndexType: FullTextType,
 		IndexOptions: &IndexOptions{
-			Analyzer:      NewAnalyzer(language, false /* stemming */),
+			Analyzer:      NewAnalyzer(language, stemTerms /* stemming */),
 			Boost:         1.0,
 			Indexed:       true,
 			Stored:        true,
@@ -176,9 +176,9 @@ func (schema *Schema) Close() {
 	}
 }
 
-func NewIndexOptions(language string, boost float32, indexed, stored, sortable, highlightable bool) *IndexOptions {
+func NewIndexOptions(language string, boost float32, indexed, stored, sortable, highlightable bool, stemTerms bool) *IndexOptions {
 	return &IndexOptions{
-		Analyzer:      NewAnalyzer(language, false /* stemming */),
+		Analyzer:      NewAnalyzer(language, stemTerms /* stemming */),
 		Boost:         boost,
 		Indexed:       indexed,
 		Stored:        stored,
@@ -187,6 +187,7 @@ func NewIndexOptions(language string, boost float32, indexed, stored, sortable, 
 	}
 }
 
+// keeping this around for posterity
 //func NewAnalyzer(language string) *Analyzer {
 //	lang := cb_newf(language)
 //	defer C.DECREF(lang)
@@ -200,11 +201,14 @@ func NewAnalyzer(language string, stemTerms bool) *Analyzer {
 	lang := cb_newf(language)
 	defer C.DECREF(lang)
 
+	// use a different analyzer if we are stemming
 	var analyzer *Analyzer
-	// use a stemming analyzer if we are stemming
 	if stemTerms {
+		// analyzer with case-insensitive, and tokens, AND stemming
+		// see https://lucy.apache.org/docs/test/Lucy/Docs/Tutorial/Analysis.html
 		analyzer = &Analyzer{Language: language, lucyAnalyzer: C.LucyEasyAnalyzerNew(lang)}
 	} else {
+		// analyzer with case-insensitive, and tokens
 		tokenizer := C.LucyStandardTokenizerNew()
 		normalizer := C.LucyNormalizerNew(nil, (C.bool)(true), (C.bool)(false))
 		analyzers := C.CFishVArrayNew((C.uint32_t)(2))
