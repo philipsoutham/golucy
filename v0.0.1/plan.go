@@ -129,7 +129,7 @@ func NewFTField(name, language string) *Field {
 		Name:      name,
 		IndexType: FullTextType,
 		IndexOptions: &IndexOptions{
-			Analyzer:      NewAnalyzer(language),
+			Analyzer:      NewAnalyzer(language, false /* stemming */),
 			Boost:         1.0,
 			Indexed:       true,
 			Stored:        true,
@@ -178,7 +178,7 @@ func (schema *Schema) Close() {
 
 func NewIndexOptions(language string, boost float32, indexed, stored, sortable, highlightable bool) *IndexOptions {
 	return &IndexOptions{
-		Analyzer:      NewAnalyzer(language),
+		Analyzer:      NewAnalyzer(language, false /* stemming */),
 		Boost:         boost,
 		Indexed:       indexed,
 		Stored:        stored,
