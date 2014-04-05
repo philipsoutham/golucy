@@ -141,9 +141,9 @@ func (ixReader *IndexReader) ParseQuery(queryStr string, stemTerms bool) *Query 
 		normalizer := C.LucyNormalizerNew(nil, (C.bool)(true), (C.bool)(false))
 		analyzers := C.CFishVArrayNew((C.uint32_t)(2))
 
-		//defer C.DECREF(tokenizer) get a segfault if i leave this here..
-		//defer C.DECREF(normalizer) get a segfault if i leave this here..
-		defer C.DECREF(analyzers)
+		//defer C.DECREF(tokenizer) get a segfault if i do this..
+		//defer C.DECREF(normalizer) get a segfault if i do this..
+		defer C.DECREF(analyzers) // this works, however
 
 		C.CFishVArrayPush(analyzers, normalizer)
 		C.CFishVArrayPush(analyzers, tokenizer)

@@ -201,17 +201,20 @@ func NewAnalyzer(language string, stemTerms bool) *Analyzer {
 	lang := cb_newf(language)
 	defer C.DECREF(lang)
 
-	// use a different analyzer if we are stemming
+	// non-stemming analyzer still does case-folding (normalizing) and tokenizing
 	var analyzer *Analyzer
 	if stemTerms {
-		// analyzer with case-insensitive, and tokens, AND stemming
 		// see https://lucy.apache.org/docs/test/Lucy/Docs/Tutorial/Analysis.html
 		analyzer = &Analyzer{Language: language, lucyAnalyzer: C.LucyEasyAnalyzerNew(lang)}
 	} else {
-		// analyzer with case-insensitive, and tokens
 		tokenizer := C.LucyStandardTokenizerNew()
 		normalizer := C.LucyNormalizerNew(nil, (C.bool)(true), (C.bool)(false))
 		analyzers := C.CFishVArrayNew((C.uint32_t)(2))
+
+		//defer C.DECREF(tokenizer) get a segfault if i do this..
+		//defer C.DECREF(normalizer) get a segfault if i do this..
+		defer C.DECREF(analyzers) // this works, however
+
 		C.CFishVArrayPush(analyzers, normalizer)
 		C.CFishVArrayPush(analyzers, tokenizer)
 		analyzer = &Analyzer{Language: language, lucyAnalyzer: C.LucyPolyAnalyzerNew(lang, analyzers)}
