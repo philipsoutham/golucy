@@ -215,8 +215,10 @@ func NewAnalyzer(language string, stemTerms bool) *Analyzer {
 		//defer C.DECREF(normalizer) get a segfault if i do this..
 		defer C.DECREF(analyzers) // this works, however
 
-		C.CFishVArrayPush(analyzers, normalizer)
+		// have to push the tokenizer before the normalizer - otherwise
+		// bad bad bad bad bad bad things will happen.
 		C.CFishVArrayPush(analyzers, tokenizer)
+		C.CFishVArrayPush(analyzers, normalizer)
 		analyzer = &Analyzer{Language: language, lucyAnalyzer: C.LucyPolyAnalyzerNew(lang, analyzers)}
 	}
 	runtime.SetFinalizer(analyzer, freeAnalyzer)
