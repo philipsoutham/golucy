@@ -145,8 +145,8 @@ func (ixReader *IndexReader) ParseQuery(queryStr string, stemTerms bool) *Query 
 		//defer C.DECREF(normalizer) get a segfault if i do this..
 		defer C.DECREF(analyzers) // this works, however
 
-		C.CFishVArrayPush(analyzers, normalizer)
 		C.CFishVArrayPush(analyzers, tokenizer)
+		C.CFishVArrayPush(analyzers, normalizer)
 		analyzer = C.LucyPolyAnalyzerNew(language, analyzers)
 	}
 
