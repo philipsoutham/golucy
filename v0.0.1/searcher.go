@@ -1,8 +1,6 @@
 package golucy
 
-import (
-	"runtime"
-)
+import "runtime"
 
 // Copyright 2013 Philip Southam
 //
@@ -26,12 +24,32 @@ import (
 #include "Clownfish/Hash.h"
 #define CfishHashKeys CFISH_Hash_Keys //returns cfish_Varray*
 
+#include "Clownfish/VArray.h"
+#define CFishVArray cfish_VArray
+#define CFishVArrayNew  cfish_VA_new
+#define CFishVArrayPush CFISH_VA_Push
+
 #include "Lucy/Search/IndexSearcher.h"
 #define LucyIndexSearcher lucy_IndexSearcher
 #define LucyIxSearcherNew lucy_IxSearcher_new
 #define LucyIxSearcherHits LUCY_IxSearcher_Hits
 #define LucyIxSearcherGetSchema LUCY_IxSearcher_Get_Schema
 #define LucyIxSearchFetchDocVec LUCY_IxSearcher_Fetch_Doc_Vec
+
+#include "Lucy/Analysis/Analyzer.h"
+#define LucyAnalyzer lucy_Analyzer
+
+#include "Lucy/Analysis/PolyAnalyzer.h"
+#define LucyPolyAnalyzerNew lucy_PolyAnalyzer_new
+#define LucyPolyAnalyzer lucy_PolyAnalyzer
+
+#include "Lucy/Analysis/StandardTokenizer.h"
+#define LucyStandardTokenizerNew lucy_StandardTokenizer_new
+#define LucyStandardTokenizer lucy_StandardTokenizer
+
+#include "Lucy/Analysis/Normalizer.h"
+#define LucyNormalizerNew lucy_Normalizer_new
+#define LucyNormalizer lucy_Normalizer
 
 #include "Lucy/Analysis/EasyAnalyzer.h"
 #define LucyEasyAnalyzerNew lucy_EasyAnalyzer_new
@@ -41,8 +59,6 @@ import (
 #include "Lucy/Analysis/Token.h"
 #define LucyInversionNext LUCY_Inversion_Next //returns lucy_Token*
 #define LucyInversionNextCluster LUCY_Inversion_Next_Cluster //returns lucy_Token**
-
-
 
 #include "Lucy/Plan/Schema.h"
 #define LucySchema lucy_Schema
@@ -111,11 +127,29 @@ func (index *Index) NewIndexReader() *IndexReader {
 	return ixReader
 }
 
-func (ixReader *IndexReader) ParseQuery(queryStr string) *Query {
+func (ixReader *IndexReader) ParseQuery(queryStr string, stemTerms bool) *Query {
 	lucySchema := C.LucyIxSearcherGetSchema(ixReader.lucySearcher)
 	language := cb_newf("en") // should be configurable
 	defer C.DECREF(language)
-	analyzer := C.LucyEasyAnalyzerNew(language)
+
+	var analyzer *C.LucyAnalyzer
+	if stemTerms {
+		analyzer = C.LucyEasyAnalyzerNew(language)
+	} else {
+		// this seems rather verbose for just creating an analyzer..
+		tokenizer := C.LucyStandardTokenizerNew()
+		normalizer := C.LucyNormalizerNew(nil, (C.bool)(true), (C.bool)(false))
+		analyzers := C.CFishVArrayNew((C.uint32_t)(2))
+
+		//defer C.DECREF(tokenizer) get a segfault if i do this..
+		//defer C.DECREF(normalizer) get a segfault if i do this..
+		defer C.DECREF(analyzers) // this works, however
+
+		C.CFishVArrayPush(analyzers, tokenizer)
+		C.CFishVArrayPush(analyzers, normalizer)
+		analyzer = C.LucyPolyAnalyzerNew(language, analyzers)
+	}
+
 	defer C.DECREF(analyzer)
 	qp := C.LucyQParserNew(
 		lucySchema,
