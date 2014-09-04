@@ -147,10 +147,10 @@ func NewSchema() *Schema {
 
 func (schema *Schema) AddField(field *Field) {
 	schema.Fields = append(schema.Fields, field)
-	var specType *C.CFishObj
-	defer C.DECREF(specType)
+	var specType *C.lucy_FieldType
+	defer C.DECREF((*C.cfish_Obj)(specType))
 	name := cb_newf(field.Name)
-	defer C.DECREF(name)
+	defer C.DECREF((*C.cfish_Obj)(name))
 
 	switch field.IndexType {
 	case FullTextType:
@@ -171,7 +171,7 @@ func (schema *Schema) AddFields(fields ...(*Field)) {
 
 func (schema *Schema) Close() {
 	if schema.lucySchema != nil {
-		C.DECREF(schema.lucySchema)
+		C.DECREF((*C.cfish_Obj)(schema.lucySchema))
 		schema.lucySchema = nil
 	}
 }
@@ -199,13 +199,13 @@ func NewIndexOptions(language string, boost float32, indexed, stored, sortable, 
 
 func NewAnalyzer(language string, stemTerms bool) *Analyzer {
 	lang := cb_newf(language)
-	defer C.DECREF(lang)
+	defer C.DECREF((*C.cfish_Obj)(lang))
 
 	// non-stemming analyzer still does case-folding (normalizing) and tokenizing
 	var analyzer *Analyzer
 	if stemTerms {
 		// see https://lucy.apache.org/docs/test/Lucy/Docs/Tutorial/Analysis.html
-		analyzer = &Analyzer{Language: language, lucyAnalyzer: C.LucyEasyAnalyzerNew(lang)}
+		analyzer = &Analyzer{Language: language, lucyAnalyzer: (*C.lucy_Analyzer)(C.LucyEasyAnalyzerNew(lang))}
 	} else {
 		tokenizer := C.LucyStandardTokenizerNew()
 		normalizer := C.LucyNormalizerNew(nil, (C.bool)(true), (C.bool)(false))
@@ -213,13 +213,13 @@ func NewAnalyzer(language string, stemTerms bool) *Analyzer {
 
 		//defer C.DECREF(tokenizer) get a segfault if i do this..
 		//defer C.DECREF(normalizer) get a segfault if i do this..
-		defer C.DECREF(analyzers) // this works, however
+		defer C.DECREF((*C.cfish_Obj)(analyzers)) // this works, however
 
 		// have to push the tokenizer before the normalizer - otherwise
 		// bad bad bad bad bad bad things will happen.
-		C.CFishVArrayPush(analyzers, tokenizer)
-		C.CFishVArrayPush(analyzers, normalizer)
-		analyzer = &Analyzer{Language: language, lucyAnalyzer: C.LucyPolyAnalyzerNew(lang, analyzers)}
+		C.CFishVArrayPush(analyzers, (*C.cfish_Obj)(tokenizer))
+		C.CFishVArrayPush(analyzers, (*C.cfish_Obj)(normalizer))
+		analyzer = &Analyzer{Language: language, lucyAnalyzer: (*C.lucy_Analyzer)(C.LucyPolyAnalyzerNew(lang, analyzers))}
 	}
 	runtime.SetFinalizer(analyzer, freeAnalyzer)
 	return analyzer
@@ -227,22 +227,22 @@ func NewAnalyzer(language string, stemTerms bool) *Analyzer {
 
 func (analyzer *Analyzer) Close() {
 	if analyzer.lucyAnalyzer != nil {
-		C.DECREF(analyzer.lucyAnalyzer)
+		C.DECREF((*C.cfish_Obj)(analyzer.lucyAnalyzer))
 		analyzer.lucyAnalyzer = nil
 	}
 }
 
-func stringSpecType(field *Field) *C.CFishCharBuf {
-	return C.LucyStringTypeInitOptions(
+func stringSpecType(field *Field) *C.lucy_FieldType {
+	return (*C.lucy_FieldType)(C.LucyStringTypeInitOptions(
 		C.LucyStringTypeNew(),
 		(C.float)(field.IndexOptions.Boost),
 		(C.bool)(field.IndexOptions.Indexed),
 		(C.bool)(field.IndexOptions.Stored),
 		(C.bool)(field.IndexOptions.Sortable),
-	)
+	))
 }
 
-func fullTextSpecType(field *Field) *C.CFishCharBuf {
+func fullTextSpecType(field *Field) *C.lucy_FieldType {
 	// Two ways to skin a cat
 	//
 	// specType := C.LucyFullTextTypeNew(field.IndexOptions.Analyzer.lucyAnalyzer)
@@ -257,7 +257,7 @@ func fullTextSpecType(field *Field) *C.CFishCharBuf {
 	// return specType
 	//
 	// and another
-	return C.LucyFullTextTypeInitOptions(
+	return (*C.lucy_FieldType)(C.LucyFullTextTypeInitOptions(
 		C.LucyFullTextTypeNew(field.IndexOptions.Analyzer.lucyAnalyzer),
 		field.IndexOptions.Analyzer.lucyAnalyzer,
 		(C.float)(field.IndexOptions.Boost),
@@ -265,7 +265,7 @@ func fullTextSpecType(field *Field) *C.CFishCharBuf {
 		(C.bool)(field.IndexOptions.Stored),
 		(C.bool)(field.IndexOptions.Sortable),
 		(C.bool)(field.IndexOptions.Highlightable),
-	)
+	))
 }
 
 func freeSchema(schema *Schema) {

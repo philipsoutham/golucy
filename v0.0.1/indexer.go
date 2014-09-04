@@ -92,10 +92,10 @@ func (index *Index) NewIndexWriter() *IndexWriter {
 		flags |= indexTruncate
 	}
 	ixLocation := cb_newf(index.Path)
-	defer C.DECREF(ixLocation)
+	defer C.DECREF((*C.cfish_Obj)(ixLocation))
 	ixWriter := &IndexWriter{
 		Index:       index,
-		lucyIndexer: C.LucyIndexerNew(index.Schema.lucySchema, ixLocation, nil, C.int32_t(flags)),
+		lucyIndexer: C.LucyIndexerNew(index.Schema.lucySchema, (*C.cfish_Obj)(ixLocation), nil, C.int32_t(flags)),
 	}
 	runtime.SetFinalizer(ixWriter, freeIndexWriter)
 	return ixWriter
@@ -106,12 +106,12 @@ func (ixWriter *IndexWriter) AddDoc(doc Document) {
 	for k, v := range doc {
 		name := cb_newf(k)
 		value := cb_new_from_utf8(v)
-		C.LucyDocStore(lDoc, name, value)
-		C.DECREF(name)
-		C.DECREF(value)
+		C.LucyDocStore(lDoc, name, (*C.cfish_Obj)(value))
+		C.DECREF((*C.cfish_Obj)(name))
+		C.DECREF((*C.cfish_Obj)(value))
 	}
 	C.LucyIndexerAddDoc(ixWriter.lucyIndexer, lDoc, 1.0) // Is 1.0 a sane default?
-	C.DECREF(lDoc)
+	C.DECREF((*C.cfish_Obj)(lDoc))
 }
 
 func (ixWriter *IndexWriter) AddDocs(docs ...Document) { // should this be []Document or ...Document?
@@ -127,7 +127,7 @@ func (ixWriter *IndexWriter) Commit() {
 func (ixWriter *IndexWriter) Close() {
 	// Should this be here or in Commit?
 	if ixWriter.lucyIndexer != nil {
-		C.DECREF(ixWriter.lucyIndexer)
+		C.DECREF((*C.cfish_Obj)(ixWriter.lucyIndexer))
 		ixWriter.lucyIndexer = nil
 	}
 }

@@ -118,10 +118,10 @@ type IndexReader struct {
 
 func (index *Index) NewIndexReader() *IndexReader {
 	ixLocation := cb_newf(index.Path)
-	defer C.DECREF(ixLocation)
+	defer C.DECREF((*C.cfish_Obj)(ixLocation))
 	ixReader := &IndexReader{
 		Index:        index,
-		lucySearcher: C.LucyIxSearcherNew(ixLocation),
+		lucySearcher: C.LucyIxSearcherNew((*C.cfish_Obj)(ixLocation)),
 	}
 	runtime.SetFinalizer(ixReader, freeIndexReader)
 	return ixReader
@@ -130,11 +130,11 @@ func (index *Index) NewIndexReader() *IndexReader {
 func (ixReader *IndexReader) ParseQuery(queryStr string, stemTerms bool) *Query {
 	lucySchema := C.LucyIxSearcherGetSchema(ixReader.lucySearcher)
 	language := cb_newf("en") // should be configurable
-	defer C.DECREF(language)
+	defer C.DECREF((*C.cfish_Obj)(language))
 
 	var analyzer *C.LucyAnalyzer
 	if stemTerms {
-		analyzer = C.LucyEasyAnalyzerNew(language)
+		analyzer = (*C.LucyAnalyzer)(C.LucyEasyAnalyzerNew(language))
 	} else {
 		// this seems rather verbose for just creating an analyzer..
 		tokenizer := C.LucyStandardTokenizerNew()
@@ -143,23 +143,23 @@ func (ixReader *IndexReader) ParseQuery(queryStr string, stemTerms bool) *Query 
 
 		//defer C.DECREF(tokenizer) get a segfault if i do this..
 		//defer C.DECREF(normalizer) get a segfault if i do this..
-		defer C.DECREF(analyzers) // this works, however
+		defer C.DECREF((*C.cfish_Obj)(analyzers)) // this works, however
 
-		C.CFishVArrayPush(analyzers, tokenizer)
-		C.CFishVArrayPush(analyzers, normalizer)
-		analyzer = C.LucyPolyAnalyzerNew(language, analyzers)
+		C.CFishVArrayPush(analyzers, (*C.cfish_Obj)(tokenizer))
+		C.CFishVArrayPush(analyzers, (*C.cfish_Obj)(normalizer))
+		analyzer = (*C.LucyAnalyzer)(C.LucyPolyAnalyzerNew(language, analyzers))
 	}
 
-	defer C.DECREF(analyzer)
+	defer C.DECREF((*C.cfish_Obj)(analyzer))
 	qp := C.LucyQParserNew(
 		lucySchema,
 		analyzer,                          //should this be configurable?
 		cb_newf("AND"),                    // should be configurable
 		C.LucySchemaAllFields(lucySchema), // should be configurable
 	)
-	defer C.DECREF(qp)
+	defer C.DECREF((*C.cfish_Obj)(qp))
 	qs := cb_new_from_utf8(queryStr)
-	defer C.DECREF(qs)
+	defer C.DECREF((*C.cfish_Obj)(qs))
 	query := &Query{
 		QueryStr:  queryStr,
 		lucyQuery: C.LucyQParserParse(qp, qs),
@@ -173,22 +173,22 @@ func (ixReader *IndexReader) Search(query *Query, offset, limit uint, idField st
 	// of `Results` object/iterator so that we don't have to specify
 	// offset/limit and where I can attach matched terms to the result.
 	lIdField, lContentField := cb_newf(idField), cb_newf(contentField) // total hack, need to return more than one field
-	defer C.DECREF(lIdField)
-	defer C.DECREF(lContentField)
-	hits := C.LucyIxSearcherHits(ixReader.lucySearcher, query.lucyQuery, C.uint32_t(offset), C.uint32_t(limit), nil)
-	defer C.DECREF(hits)
+	defer C.DECREF((*C.cfish_Obj)(lIdField))
+	defer C.DECREF((*C.cfish_Obj)(lContentField))
+	hits := C.LucyIxSearcherHits(ixReader.lucySearcher, (*C.cfish_Obj)(query.lucyQuery), C.uint32_t(offset), C.uint32_t(limit), nil)
+	defer C.DECREF((*C.cfish_Obj)(hits))
 	totalNumHits := uint(C.LucyHitsTotal(hits))
 	num2Return := minUInt(limit, totalNumHits)
 	results := make([]*SearchResult, num2Return)
 	var hit *C.LucyHitDoc
-	compiler := C.LucyQueryMakeCompiler(query.lucyQuery, ixReader.lucySearcher, 1.0, false)
-	defer C.DECREF(compiler)
+	compiler := C.LucyQueryMakeCompiler(query.lucyQuery, (*C.lucy_Searcher)(ixReader.lucySearcher), 1.0, false)
+	defer C.DECREF((*C.cfish_Obj)(compiler))
 
 	matchedTerms := func(docId C.int32_t, result *SearchResult) {
 		docVec := C.LucyIxSearchFetchDocVec(ixReader.lucySearcher, docId)
-		defer C.DECREF(docVec)
-		spans := C.LucyCompilerHighlightSpans(compiler, ixReader.lucySearcher, docVec, lContentField)
-		defer C.DECREF(spans)
+		defer C.DECREF((*C.cfish_Obj)(docVec))
+		spans := C.LucyCompilerHighlightSpans(compiler, (*C.lucy_Searcher)(ixReader.lucySearcher), docVec, lContentField)
+		defer C.DECREF((*C.cfish_Obj)(spans))
 		spanCnt := C.VaGetSize(spans)
 		if spanCnt == 0 {
 			// should never get here, but just in case...
@@ -198,8 +198,8 @@ func (ixReader *IndexReader) Search(query *Query, offset, limit uint, idField st
 		var i C.uint32_t
 		for i = 0; i < spanCnt; i++ {
 			span := C.VaFetch(spans, i)
-			offset := C.LucySpanGetOffset(span)
-			length := C.LucySpanGetLength(span)
+			offset := C.LucySpanGetOffset((*C.lucy_Span)(span))
+			length := C.LucySpanGetLength((*C.lucy_Span)(span))
 			result.MatchedTerms[i] = string([]rune(result.Text)[offset : offset+length])
 		}
 		// make terms unique?
@@ -212,8 +212,8 @@ func (ixReader *IndexReader) Search(query *Query, offset, limit uint, idField st
 			break
 		}
 		docId := C.LucyHitDocGetDocId(hit)
-		contentValue := cb_ptr2char(C.LucyHitDocExtract(hit, lContentField, nil)) // do i need to free this
-		idValue := cb_ptr2char(C.LucyHitDocExtract(hit, lIdField, nil))           // do i need to free this
+		contentValue := cb_ptr2char((*C.cfish_CharBuf)(C.LucyHitDocExtract(hit, lContentField, nil))) // do i need to free this
+		idValue := cb_ptr2char((*C.cfish_CharBuf)(C.LucyHitDocExtract(hit, lIdField, nil)))           // do i need to free this
 		results[i] = &SearchResult{
 			Id:    C.GoString(idValue),
 			Text:  C.GoString(contentValue),
@@ -222,7 +222,7 @@ func (ixReader *IndexReader) Search(query *Query, offset, limit uint, idField st
 		if includeMatchedTerms {
 			matchedTerms(docId, results[i])
 		}
-		C.DECREF(hit)
+		C.DECREF((*C.cfish_Obj)(hit))
 	}
 	return totalNumHits, results
 }
@@ -243,14 +243,14 @@ func set(vals []string) []string {
 
 func (ixReader *IndexReader) Close() {
 	if ixReader.lucySearcher != nil {
-		C.DECREF(ixReader.lucySearcher)
+		C.DECREF((*C.cfish_Obj)(ixReader.lucySearcher))
 		ixReader.lucySearcher = nil
 	}
 }
 
 func (query *Query) Close() {
 	if query.lucyQuery != nil {
-		C.DECREF(query.lucyQuery)
+		C.DECREF((*C.cfish_Obj)(query.lucyQuery))
 		query.lucyQuery = nil
 	}
 }
